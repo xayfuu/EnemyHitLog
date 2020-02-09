@@ -1,8 +1,8 @@
 
 {
-    "name": "EnemyHitLog"
+    "name": "EnemyHitLog",
     "version_number": "0.1.0",
-    "website_url": "",
+    "website_url": "https://github.com/xayfuu/EnemyHitLog",
     "description": "Log enemy damage dealt to players in the chat",
     "dependencies": [
     	"tristanmcpherson-R2API-2.3.22",
