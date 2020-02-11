@@ -8,7 +8,7 @@ using System.Collections.Generic;
 namespace EnemyHitLog
 {
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Xay.EnemyHitLog", "EnemyHitLog", "0.2.0")]
+    [BepInPlugin("com.Xay.EnemyHitLog", "EnemyHitLog", "0.1.0")]
     public class EnemyHitLog : BaseUnityPlugin
     {
         public static readonly Regex NoWhitespace = new Regex(@"\s+");
@@ -39,19 +39,6 @@ namespace EnemyHitLog
             VictimsDebuffCache.Clear();
         }
 
-        public void Update()
-        {
-            //This if statement checks if the player has currently pressed F2, and then proceeds into the statement:
-            if (Input.GetKeyDown(KeyCode.F2))
-            {
-                //Get the player body to use a position:
-                var transform = PlayerCharacterMasterController.instances[0].master.GetBodyObject().transform;
-
-                //And then finally drop it infront of the player.
-                PickupDropletController.CreatePickupDroplet(PickupCatalog.FindPickupIndex(ItemIndex.BeetleGland), transform.position, transform.forward * 20f);
-            }
-        }
-
         private void Event_ServerDamageDealt(On.RoR2.GlobalEventManager.orig_ServerDamageDealt orig, DamageReport damageReport)
         {
             orig(damageReport);
@@ -69,25 +56,8 @@ namespace EnemyHitLog
             {
                 EnsureVictimIsCachedAndAlive(victim);
 
-                foreach (KeyValuePair<uint, List<DotController.DotIndex>> entry in VictimsDebuffCache)
-                {
-                    Debug.Log("NetworkUserId: " + entry.Key);
-                    if (entry.Value.Count == 0)
-                        Debug.Log("-- No Debuffs");
-                    else
-                    {
-                        foreach (DotController.DotIndex debuff in entry.Value)
-                        {
-                            Debug.Log("-- Debuff: " + debuff);
-                        }
-                    }
-                }
-
                 if (VictimsDebuffCache.ContainsKey(GetVictimNetworkUserId(victim)))
                 {
-                    Debug.Log("Has OnFire Buff: " + victim.HasBuff(BuffIndex.OnFire));
-                    Debug.Log("Has DotController.DotIndex: " + damageReport.damageInfo.dotIndex);
-
                     if (damageReport.damageInfo.dotIndex == DotController.DotIndex.PercentBurn)
                     {
                         if (VictimHasDebuff(victim, DotController.DotIndex.PercentBurn))
