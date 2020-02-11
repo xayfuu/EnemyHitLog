@@ -10,7 +10,7 @@ namespace EnemyHitLog
     [BepInPlugin("com.Xay.EnemyHitLog", "EnemyHitLog", "0.1.0")]
     public class EnemyHitLog : BaseUnityPlugin
     {
-        private readonly Regex NoWhitespace = new Regex(@"\s+");
+        private static readonly Regex NoWhitespace = new Regex(@"\s+");
         public static readonly string DefaultHighlightColor = "#b3b3b3";
 
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -219,9 +219,9 @@ namespace EnemyHitLog
             { new CharacterData("Engineer", "Engi", "#5fe286") },
             { new CharacterData("Huntress", "Huntress", "#d53d3d") },
             { new CharacterData("Loader", "Loader", "#35a7ff") },
-            { new CharacterData("Mercenary", "Merc", "#85ff33") },
-            { new CharacterData("MUL-T", "MUL-T>", "#85ff33") },
-            { new CharacterData("Rex", "Rex", "#85ff33") }
+            { new CharacterData("Mercenary", "Merc", "#6cd1ea") },
+            { new CharacterData("MUL-T", "MUL-T>", "#d3c44f") },
+            { new CharacterData("Rex", "Rex", "#408000") }
         };
 
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
