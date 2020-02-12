@@ -8,7 +8,7 @@ using System.Collections.Generic;
 namespace EnemyHitLog
 {
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Xay.EnemyHitLog", "EnemyHitLog", "0.1.0")]
+    [BepInPlugin("com.Xay.EnemyHitLog", "EnemyHitLog", "0.2.0")]
     public class EnemyHitLog : BaseUnityPlugin
     {
         public static readonly Regex NoWhitespace = new Regex(@"\s+");
@@ -17,17 +17,27 @@ namespace EnemyHitLog
         public static ConfigEntry<bool> ConfigLogPlayers;
         public static ConfigEntry<bool> ConfigLogAllies;
         public static ConfigEntry<bool> ConfigLogUtility;
+        public static ConfigEntry<bool> ConfigLogDebuff;
+        public static ConfigEntry<int> ConfigHpPercentageFilter;
 
-        public static Dictionary<uint, List<DotController.DotIndex>> VictimsDebuffCache = new Dictionary<uint, List<DotController.DotIndex>>();
+        public DebuffHandler debuffHandler;
+
 
         public void Awake()
         {
-            ConfigLogPlayers = Config.Bind("EnemyHitLog.Toggles", "Player", true, "Whether or not to log Players");
-            ConfigLogAllies = Config.Bind("EnemyHitLog.Toggles", "Ally", false, "Whether or not to log Allies, like Engineer Turrets, Beetle Guards or Aurelionite");
-            ConfigLogUtility = Config.Bind("EnemyHitLog.Toggles", "Utility", false, "Whether or not to log Drones and Turrets that were bought during a run");
+            ConfigLogPlayers = Config.Bind("EnemyHitLog.Toggles", "Player", true, "Whether or not to log Players\n");
+            ConfigLogAllies = Config.Bind("EnemyHitLog.Toggles", "Ally", false, "Whether or not to log Allies, like Engineer Turrets, Beetle Guards or Aurelionite\n");
+            ConfigLogUtility = Config.Bind("EnemyHitLog.Toggles", "Utility", false, "Whether or not to log Drones and Turrets that were bought during a run\n");
+            ConfigLogDebuff = Config.Bind("EnemyHitLog.Toggles", "Debuffs", true, "Whether or not to post Debuffs\n");
+            ConfigHpPercentageFilter = Config.Bind("EnemyHitLog.Filter", "DamageHealthPercentage", 10, "Do not log any damage which has a lower value than the given percentage of the Player's HP.\n\nFor example, if this variable is 10, only damage as high as at least 10% of the Player's max. HP (not counting barrier and shield) will be logged to the chat.\n\nNote:Splash damage results in being ignored as well, since each splash is a separate Hit á e.g. 5 Damage. Hopefully I will find the time to try to fix this in the future...\n");
 
             if (AllTogglesDisabled())
                 return;
+
+            if (ConfigHpPercentageFilter.Value < 0)
+                ConfigHpPercentageFilter.Value = 0;
+
+            debuffHandler = new DebuffHandler();
 
             On.RoR2.GlobalEventManager.ServerDamageDealt += Event_ServerDamageDealt;
             UnityEngine.SceneManagement.SceneManager.activeSceneChanged += SceneManager_activeSceneChanged;
@@ -36,7 +46,7 @@ namespace EnemyHitLog
         private void SceneManager_activeSceneChanged(UnityEngine.SceneManagement.Scene arg0, UnityEngine.SceneManagement.Scene arg1)
         {
             Debug.Log("Scene Changed, clearing VictimsDebuffCache");
-            VictimsDebuffCache.Clear();
+            debuffHandler.ClearCache();
         }
 
         private void Event_ServerDamageDealt(On.RoR2.GlobalEventManager.orig_ServerDamageDealt orig, DamageReport damageReport)
@@ -48,46 +58,31 @@ namespace EnemyHitLog
 
             CharacterBody victim = damageReport.victimBody;
             CharacterBody attacker = damageReport.attackerBody;
+
+            debuffHandler.EnsureVictimIsCachedAndAlive(victim);
+
             string attackerLabel;
             string victimLabel;
-            DotController.DotIndex debuffFirstTick = DotController.DotIndex.None;
+            bool allowDebuffBroadcast = false;
+            bool allowDamageBroadcast = false;
 
-            if (VictimIsPlayerLike(damageReport))
+            if (VictimIsInPlayerTeam(damageReport))
             {
-                EnsureVictimIsCachedAndAlive(victim);
-
-                if (VictimsDebuffCache.ContainsKey(GetVictimNetworkUserId(victim)))
-                {
-                    if (damageReport.damageInfo.dotIndex == DotController.DotIndex.PercentBurn)
-                    {
-                        if (VictimHasDebuff(victim, DotController.DotIndex.PercentBurn))
-                            return;
-                        debuffFirstTick = DotController.DotIndex.PercentBurn;
-                        AddVictimDebuff(victim, DotController.DotIndex.PercentBurn);
-                    }
-                    else
-                        if (!victim.HasBuff(BuffIndex.OnFire))
-                            RemoveVictimDebuff(victim, DotController.DotIndex.PercentBurn);
-
-                    if (damageReport.damageInfo.dotIndex == DotController.DotIndex.Bleed)
-                    {
-                        if (VictimHasDebuff(victim, DotController.DotIndex.Bleed))
-                            return;
-                        debuffFirstTick = DotController.DotIndex.Bleed;
-                        AddVictimDebuff(victim, DotController.DotIndex.Bleed);
-                    }
-                    else
-                        if (!victim.HasBuff(BuffIndex.Bleeding))
-                            RemoveVictimDebuff(victim, DotController.DotIndex.Bleed);
-                }
-
+                if (ConfigLogDebuffEnabled())
+                    allowDebuffBroadcast = debuffHandler.EventIsDebuffTick(victim, damageReport);
 
                 float damageTaken = Mathf.Round(damageReport.damageDealt);
-                if (damageTaken == 0)
+                if (damageTaken > 0 && DamageIsAboveHpThreshold(victim, damageTaken))
+                    allowDamageBroadcast = true;
+
+                if (!allowDamageBroadcast && !allowDebuffBroadcast)
                     return;
 
-
-                if (!VictimIsRealPlayer(victim))
+                if (VictimIsRealPlayer(victim))
+                {
+                    victimLabel = ComposePlayerVictimLabel(victim);
+                }
+                else
                 {
                     if (MinionTogglesDisabled())
                         return;
@@ -98,73 +93,24 @@ namespace EnemyHitLog
 
                     victimLabel = ComposeMinionVictimLabel(victim, minionOwner.GetBody());
                 }
-                else
-                    victimLabel = ComposePlayerVictimLabel(victim);
-
 
                 if (victimLabel == null)
                     return;
 
-
-                if (debuffFirstTick != DotController.DotIndex.None)
+                if (allowDebuffBroadcast)
                 {
-                    attackerLabel = ComposeDebuffLabel(debuffFirstTick);
+                    attackerLabel = ComposeDebuffLabel(debuffHandler.GetDebuffType(damageReport));
                     if (attackerLabel == null)
                         return;
 
                     Chat.SendBroadcastChat(ComposeNewDebuffInfoMessage(attackerLabel, victimLabel));
                 }
-                else
+                else if (allowDamageBroadcast)
                 {
-                    BuffIndex attackerBuff = BuffIndex.None;
-                    foreach (BuffIndex buffIndex in BuffCatalog.eliteBuffIndices)
-                    {
-                        if (damageReport.attackerBody.HasBuff(buffIndex))
-                        {
-                            attackerBuff = buffIndex;
-                            break;
-                        }
-                    }
+                    BuffIndex attackerBuff = GetAttackerEliteBuff(attacker);
                     attackerLabel = ComposeAttackerLabel(attacker, attackerBuff);
                     Chat.SendBroadcastChat(ComposeNewHitInfoMessage(attackerLabel, victimLabel, damageTaken));
                 }
-            }
-        }
-
-        private bool VictimIsPlayerLike(DamageReport dmgReport) => dmgReport.victimTeamIndex == TeamIndex.Player;
-        private bool VictimIsRealPlayer(CharacterBody victimBody) => victimBody.isPlayerControlled;
-        private bool AllTogglesDisabled() => !ConfigLogPlayers.Value && !ConfigLogAllies.Value && !ConfigLogUtility.Value;
-        private bool MinionTogglesDisabled() => !ConfigLogAllies.Value && !ConfigLogUtility.Value;
-        private bool VictimHasDebuff(CharacterBody victim, DotController.DotIndex debuffIndex) => VictimsDebuffCache[GetVictimNetworkUserId(victim)].IndexOf(debuffIndex) != -1;
-        private uint GetVictimNetworkUserId(CharacterBody victim) => victim.networkIdentity.netId.Value;
-
-        private void AddVictimDebuff(CharacterBody victim, DotController.DotIndex debuffIndex)
-        {
-            int listIdx = VictimsDebuffCache[GetVictimNetworkUserId(victim)].IndexOf(debuffIndex);
-            if (listIdx != -1)
-                return;
-            VictimsDebuffCache[GetVictimNetworkUserId(victim)].Add(debuffIndex);
-        }
-
-        private void RemoveVictimDebuff(CharacterBody victim, DotController.DotIndex debuffIndex)
-        {
-            int listIdx = VictimsDebuffCache[GetVictimNetworkUserId(victim)].IndexOf(debuffIndex);
-            if (listIdx == -1)
-                return;
-            VictimsDebuffCache[GetVictimNetworkUserId(victim)].RemoveAt(listIdx);
-        }
-
-        private void EnsureVictimIsCachedAndAlive(CharacterBody victim)
-        {
-            if (victim.master.alive && victim.isActiveAndEnabled)
-            {
-                if (!VictimsDebuffCache.ContainsKey(GetVictimNetworkUserId(victim)))
-                    VictimsDebuffCache.Add(GetVictimNetworkUserId(victim), new List<DotController.DotIndex>());
-            }
-            else
-            {
-                if (VictimsDebuffCache.ContainsKey(GetVictimNetworkUserId(victim)))
-                    VictimsDebuffCache.Remove(GetVictimNetworkUserId(victim));
             }
         }
 
@@ -176,6 +122,16 @@ namespace EnemyHitLog
                     return pcm.master;
             }
             return null;
+        }
+
+        private BuffIndex GetAttackerEliteBuff(CharacterBody attacker)
+        {
+            foreach (BuffIndex buffIndex in BuffCatalog.eliteBuffIndices)
+            {
+                if (attacker.HasBuff(buffIndex))
+                    return buffIndex;
+            }
+            return BuffIndex.None;
         }
 
         private string ComposeAttackerLabel(CharacterBody attacker, BuffIndex buffIndex)
@@ -201,8 +157,10 @@ namespace EnemyHitLog
         {
             if (debuffIndex == DotController.DotIndex.Bleed)
                 return $"<color=#8a0303>Bleeding</color>";
+
             else if (debuffIndex == DotController.DotIndex.PercentBurn)
                 return $"<color=#e25822>Burning</color>";
+
             return null;
         }
 
@@ -247,9 +205,131 @@ namespace EnemyHitLog
                 baseToken = $"{victimLabel}: Is {attackerLabel}!"
             };
         }
+
+        private bool DamageIsAboveHpThreshold(CharacterBody victim, float damageTaken)
+        {
+            return (int)((victim.maxHealth / 100 * ConfigHpPercentageFilter.Value) - damageTaken) <= 0;
+        }
+
+        private bool VictimIsInPlayerTeam(DamageReport dmgReport)
+        {
+            return dmgReport.victimTeamIndex == TeamIndex.Player;
+        }
+
+        private bool VictimIsRealPlayer(CharacterBody victimBody)
+        {
+            return victimBody.isPlayerControlled;
+        }
+
+        private bool ConfigLogDebuffEnabled()
+        {
+            return ConfigLogDebuff.Value;
+        }
+
+        private bool AllTogglesDisabled()
+        {
+            return !ConfigLogPlayers.Value && !ConfigLogAllies.Value && !ConfigLogUtility.Value;
+        }
+
+        private bool MinionTogglesDisabled()
+        {
+            return !ConfigLogAllies.Value && !ConfigLogUtility.Value;
+        }
     }
 
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    public class DebuffHandler
+    {
+        public Dictionary<uint, List<DotController.DotIndex>> VictimsDebuffCache;
+
+        public DebuffHandler()
+        {
+            VictimsDebuffCache = new Dictionary<uint, List<DotController.DotIndex>>();
+        }
+
+        public void ClearCache() => VictimsDebuffCache.Clear();
+
+        public DotController.DotIndex GetDebuffType(DamageReport damageReport)
+        {
+            return damageReport.dotType;
+        }
+
+        public bool EventIsDebuffTick(CharacterBody victim, DamageReport damageReport)
+        {
+            if (VictimsDebuffCache.ContainsKey(GetVictimNetworkUserId(victim)))
+            {
+                if (damageReport.damageInfo.dotIndex == DotController.DotIndex.PercentBurn)
+                {
+                    if (DebuffWasHandledAlready(victim, DotController.DotIndex.PercentBurn))
+                        return false;
+
+                    AddVictimDebuff(victim, DotController.DotIndex.PercentBurn);
+                    return true;
+                }
+                else if (!victim.HasBuff(BuffIndex.OnFire))
+                    RemoveVictimDebuff(victim, DotController.DotIndex.PercentBurn);
+
+
+                if (damageReport.damageInfo.dotIndex == DotController.DotIndex.Bleed)
+                {
+                    if (DebuffWasHandledAlready(victim, DotController.DotIndex.Bleed))
+                        return false;
+
+                    AddVictimDebuff(victim, DotController.DotIndex.Bleed);
+                    return true;
+                }
+                else if (!victim.HasBuff(BuffIndex.Bleeding))
+                    RemoveVictimDebuff(victim, DotController.DotIndex.Bleed);
+            }
+
+            return false;
+        }
+
+        private bool DebuffWasHandledAlready(CharacterBody victim, DotController.DotIndex debuffIndex)
+        {
+            return VictimsDebuffCache[GetVictimNetworkUserId(victim)].IndexOf(debuffIndex) != -1;
+        }
+
+        private uint GetVictimNetworkUserId(CharacterBody victim)
+        {
+            return victim.networkIdentity.netId.Value;
+        }
+
+        private void AddVictimDebuff(CharacterBody victim, DotController.DotIndex debuffIndex)
+        {
+            int listIdx = VictimsDebuffCache[GetVictimNetworkUserId(victim)].IndexOf(debuffIndex);
+
+            if (listIdx != -1)
+                return;
+
+            VictimsDebuffCache[GetVictimNetworkUserId(victim)].Add(debuffIndex);
+        }
+
+        private void RemoveVictimDebuff(CharacterBody victim, DotController.DotIndex debuffIndex)
+        {
+            int listIdx = VictimsDebuffCache[GetVictimNetworkUserId(victim)].IndexOf(debuffIndex);
+
+            if (listIdx == -1)
+                return;
+
+            VictimsDebuffCache[GetVictimNetworkUserId(victim)].RemoveAt(listIdx);
+        }
+
+        public void EnsureVictimIsCachedAndAlive(CharacterBody victim)
+        {
+            if (victim.master.alive && victim.isActiveAndEnabled)
+            {
+                if (!VictimsDebuffCache.ContainsKey(GetVictimNetworkUserId(victim)))
+                    VictimsDebuffCache.Add(GetVictimNetworkUserId(victim), new List<DotController.DotIndex>());
+            }
+            else if (VictimsDebuffCache.ContainsKey(GetVictimNetworkUserId(victim)))
+                VictimsDebuffCache.Remove(GetVictimNetworkUserId(victim));
+        }
+    }
+
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     public static class DataCatalog
     {
         private static Dictionary<string, DataContainer> Characters = new Dictionary<string, DataContainer>()
@@ -290,6 +370,7 @@ namespace EnemyHitLog
 
             if (!Characters.ContainsKey(characterDisplayName))
                 return new DataContainer(characterDisplayName, characterDisplayName, EnemyHitLog.DefaultHighlightColor, DataContainerType.Character);
+
             return Characters[characterDisplayName];
         }
 
@@ -307,6 +388,8 @@ namespace EnemyHitLog
         }
     }
 
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     public enum DataContainerType
     {
         Unknown = -1,
@@ -315,6 +398,8 @@ namespace EnemyHitLog
         Utility
     }
 
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     public struct DataContainer
     {
         public string DisplayName;
