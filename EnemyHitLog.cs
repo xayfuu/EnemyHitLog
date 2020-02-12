@@ -29,7 +29,7 @@ namespace EnemyHitLog
             ConfigLogAllies = Config.Bind("EnemyHitLog.Toggles", "Ally", false, "Whether or not to log Allies, like Engineer Turrets, Beetle Guards or Aurelionite\n");
             ConfigLogUtility = Config.Bind("EnemyHitLog.Toggles", "Utility", false, "Whether or not to log Drones and Turrets that were bought during a run\n");
             ConfigLogDebuff = Config.Bind("EnemyHitLog.Toggles", "Debuffs", true, "Whether or not to post Debuffs\n");
-            ConfigHpPercentageFilter = Config.Bind("EnemyHitLog.Filter", "DamageHealthPercentage", 10, "Do not log any damage which has a lower value than the given percentage of the Player's HP.\n\nFor example, if this variable is 10, only damage as high as at least 10% of the Player's max. HP (not counting barrier and shield) will be logged to the chat.\n\nNote:Splash damage results in being ignored as well, since each splash is a separate Hit á e.g. 5 Damage. Hopefully I will find the time to try to fix this in the future...\n");
+            ConfigHpPercentageFilter = Config.Bind("EnemyHitLog.Filter", "DamageToMaxHealthThreshold", 10, "Do not log any damage which has a lower value than the given percentage of the Player's HP.\n\nFor example, if this variable is 10, only damage as high as at least 10% of the Player's max. HP (not counting barrier and shield) will be logged to the chat.\n\nNote:Splash damage results in being ignored as well, since each splash is a separate Hit á e.g. 5 Damage. Hopefully I will find the time to try to fix this in the future...\n");
 
             if (AllTogglesDisabled())
                 return;
