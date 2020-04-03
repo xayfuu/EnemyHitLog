@@ -8,10 +8,9 @@ using System.Collections.Generic;
 namespace EnemyHitLog
 {
     [BepInDependency("com.bepis.r2api")]
-    [BepInPlugin("com.Xay.EnemyHitLog", "EnemyHitLog", "0.2.0")]
+    [BepInPlugin("com.Xay.EnemyHitLog", "EnemyHitLog", "0.2.1")]
     public class EnemyHitLog : BaseUnityPlugin
     {
-        public static readonly Regex NoWhitespace = new Regex(@"\s+");
         public static readonly string DefaultHighlightColor = "#b3b3b3";
 
         public static ConfigEntry<bool> ConfigLogPlayers;
@@ -29,7 +28,7 @@ namespace EnemyHitLog
             ConfigLogAllies = Config.Bind("EnemyHitLog.Toggles", "Ally", false, "Whether or not to log Allies, like Engineer Turrets, Beetle Guards or Aurelionite\n");
             ConfigLogUtility = Config.Bind("EnemyHitLog.Toggles", "Utility", false, "Whether or not to log Drones and Turrets that were bought during a run\n");
             ConfigLogDebuff = Config.Bind("EnemyHitLog.Toggles", "Debuffs", true, "Whether or not to post Debuffs\n");
-            ConfigHpPercentageFilter = Config.Bind("EnemyHitLog.Filter", "DamageToMaxHealthThreshold", 10, "Do not log any damage which has a lower value than the given percentage of the Player's HP.\n\nFor example, if this variable is 10, only damage as high as at least 10% of the Player's max. HP (not counting barrier and shield) will be logged to the chat.\n\nNote:Splash damage results in being ignored as well, since each splash is a separate Hit á e.g. 5 Damage. Hopefully I will find the time to try to fix this in the future...\n");
+            ConfigHpPercentageFilter = Config.Bind("EnemyHitLog.Filter", "DamageToMaxHealthThreshold", 5, "Do not log any damage which has a lower value than the given percentage of the Player's HP.\n\nFor example, if this variable is 10, only damage as high as at least 10% of the Player's max. HP (not counting barrier and shield) will be logged to the chat.\n\nNote:Splash damage results in being ignored as well, since each splash is a separate Hit á e.g. 5 Damage. Hopefully I will find the time to try to fix this in the future...\n");
 
             if (AllTogglesDisabled())
                 return;
@@ -59,8 +58,6 @@ namespace EnemyHitLog
             CharacterBody victim = damageReport.victimBody;
             CharacterBody attacker = damageReport.attackerBody;
 
-            debuffHandler.EnsureVictimIsCachedAndAlive(victim);
-
             string attackerLabel;
             string victimLabel;
             bool allowDebuffBroadcast = false;
@@ -68,6 +65,8 @@ namespace EnemyHitLog
 
             if (VictimIsInPlayerTeam(damageReport))
             {
+                debuffHandler.EnsureVictimIsCachedAndAlive(victim);
+
                 if (ConfigLogDebuffEnabled())
                     allowDebuffBroadcast = debuffHandler.EventIsDebuffTick(victim, damageReport);
 
@@ -318,13 +317,14 @@ namespace EnemyHitLog
 
         public void EnsureVictimIsCachedAndAlive(CharacterBody victim)
         {
-            if (victim.master.alive && victim.isActiveAndEnabled)
+            if (victim.isActiveAndEnabled)
             {
                 if (!VictimsDebuffCache.ContainsKey(GetVictimNetworkUserId(victim)))
                     VictimsDebuffCache.Add(GetVictimNetworkUserId(victim), new List<DotController.DotIndex>());
-            }
-            else if (VictimsDebuffCache.ContainsKey(GetVictimNetworkUserId(victim)))
+            } else
+            {
                 VictimsDebuffCache.Remove(GetVictimNetworkUserId(victim));
+            }
         }
     }
 
@@ -341,7 +341,7 @@ namespace EnemyHitLog
             { "huntress",   new DataContainer("Huntress", "Huntress", "#d53d3d", DataContainerType.Character) },
             { "loader",     new DataContainer("Loader", "Loader", "#35a7ff", DataContainerType.Character) },
             { "mercenary",  new DataContainer("Mercenary", "Merc", "#6cd1ea", DataContainerType.Character) },
-            { "mul-t",      new DataContainer("MUL-T", "MUL-T>", "#d3c44f", DataContainerType.Character) },
+            { "mul-t",      new DataContainer("MUL-T", "MUL-T", "#d3c44f", DataContainerType.Character) },
             { "rex",        new DataContainer("Rex", "Rex", "#408000", DataContainerType.Character) }
         };
 

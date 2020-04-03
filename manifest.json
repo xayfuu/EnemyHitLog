@@ -1,11 +1,10 @@
-
 {
     "name": "EnemyHitLog",
-    "version_number": "0.1.0",
+    "version_number": "0.2.1",
     "website_url": "https://github.com/xayfuu/EnemyHitLog",
     "description": "Log enemy damage dealt to players in the chat",
     "dependencies": [
-    	"tristanmcpherson-R2API-2.3.22",
+    	"tristanmcpherson-R2API-2.4.2",
       	"bbepis-BepInExPack-3.0.0"
     ]
 }
