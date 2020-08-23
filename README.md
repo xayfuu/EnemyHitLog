@@ -21,11 +21,11 @@ This mod can become quite noisy. To have control over this, a configuration file
 
 You can toggle the following:
 
-- Player logging ([true]|false)
-- Ally logging, i.e. Engineer Turrets, Beetle Guard or Aurelionite (true|[false])
-- Utilities logging, i.e. Drones & Turrets (true|[false])
-- Fall damage logging ([true]|false)
-- Shrine of Blood logging (true|[false])
+- Player logging `([true]|false)`
+- Ally logging, i.e. Engineer Turrets, Beetle Guard or Aurelionite `(true|[false])`
+- Utilities logging, i.e. Drones & Turrets `(true|[false])`
+- Fall damage logging `([true]|false)`
+- Shrine of Blood logging `(true|[false])`
 
 Setting all toggles to `false` lets the mod become inactive.
 
@@ -35,7 +35,7 @@ If you wish to disable Debuff logging by itself without wanting to deactivate da
 
 You can filter out messages in the following ways:
 
-- `DamageToMaxHealthThreshold`: Do not log any damage which has a lower value than the given percentage of the Player's HP. For example, if this variable is 10, only damage as high as at least 10% of the Player's max. HP (not counting barrier and shield) will be logged to the chat. Default value is 5.
+- `DamageToMaxHealthThreshold`: Do not log any damage which has a lower value than the given percentage of the Player's HP. For example, if this variable is `10`, only damage as high as at least 10% of the Player's max. HP (not counting barrier and shield) will be logged to the chat. Default value is `5`.
 
 # Installation
 
@@ -56,7 +56,6 @@ If you experience any bugs or have suggestions, let me know on GitHub by creatin
 
 ## [0.3.0]
 
-### New
 - Added fall damage
 - Added Shrine of Blood damage
 - Added Poison, Blight, and Burn tick debuffs
@@ -64,14 +63,10 @@ If you experience any bugs or have suggestions, let me know on GitHub by creatin
 - Added `FallDamage` toggle to Config file (default is `true`)
 - Added `ShrinesOfBlood` toggle to Config file (default is `false`)
 - Added proper Captain color
-
-### Changed
 - Updated some Survivor colors
 - Updated mod logo
 - Updated `DamageToMaxHealthThreshold` such that its filter functionality applies to any damage event
 - Updated some logging text
-
-### Bugs
 - Fixed typos in Config descriptions and entity labels
 
 ## [0.2.0]
