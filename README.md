@@ -24,12 +24,12 @@ You can toggle the following:
 - Player logging `([true]|false)`
 - Ally logging, i.e. Engineer Turrets, Beetle Guard or Aurelionite `(true|[false])`
 - Utilities logging, i.e. Drones & Turrets `(true|[false])`
+
+Setting the above toggles to `false` lets the mod become inactive.
+
 - Fall damage logging `([true]|false)`
 - Shrine of Blood logging `(true|[false])`
-
-Setting all toggles to `false` lets the mod become inactive.
-
-If you wish to disable Debuff logging by itself without wanting to deactivate damage logging, simply set `Debuffs` to `false`.
+- Debuff logging `([true]|false)`
 
 ## Filters
 
