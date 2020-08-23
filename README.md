@@ -15,7 +15,7 @@ Log damage taken in the chat.
 
 # Configuration
 
-This mod can become quite noisy. To have control over this, a configuration file is provided by this mod. It is located at `/Risk of Rain 2/BepInEx/config/com.Xay.EnemyHitLog.cfg`, generated after Risk of Rain 2 has been launched once with BepInEx. 
+This mod can become quite noisy. To have control over this, a configuration file is provided by this mod. It is located at `/Risk of Rain 2/BepInEx/config/com.Xay.EnemyHitLog.cfg`, generated after Risk of Rain 2 has been launched once with BepInEx with the mod installed. 
 
 ## Toggles
 
