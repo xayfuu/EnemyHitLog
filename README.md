@@ -1,10 +1,6 @@
 # EnemyHitLog
 
-Log damage taken in the chat
-
-![showcase1](https://i.imgur.com/qsieJix.png)
-
-![showcase2](https://i.imgur.com/MMjDDNw.png)
+Log damage taken in the chat.
 
 # Features
 
@@ -12,6 +8,10 @@ Log damage taken in the chat
 - Logs damage-on-tick (DoT) debuffs
 - Colorized labels for less dull messages
 - Toggles and Filters to reduce spam in the chat
+
+![showcase1](https://i.imgur.com/qsieJix.png)
+
+![showcase2](https://i.imgur.com/MMjDDNw.png)
 
 # Configuration
 
