@@ -62,11 +62,11 @@ If you experience any bugs or have suggestions, let me know on GitHub by creatin
 - Added friendly fire handling
 - Added `FallDamage` toggle to Config file (default is `true`)
 - Added `ShrinesOfBlood` toggle to Config file (default is `false`)
-- Added proper Captain color
-- Updated some Survivor colors
+- Added proper Captain label color
+- Updated some Survivor label colors
 - Updated mod logo
-- Updated `DamageToMaxHealthThreshold` such that its filter functionality applies to any damage event
 - Updated some logging text
+- Updated/Fixed `DamageToMaxHealthThreshold` such that its filter functionality applies to any damage event
 - Fixed typos in Config descriptions and entity labels
 
 `0.2.0`
