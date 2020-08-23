@@ -54,7 +54,7 @@ If you experience any bugs or have suggestions, let me know on GitHub by creatin
 
 # Changelog
 
-## [0.3.0]
+`0.3.0`
 
 - Added fall damage
 - Added Shrine of Blood damage
@@ -69,13 +69,13 @@ If you experience any bugs or have suggestions, let me know on GitHub by creatin
 - Updated some logging text
 - Fixed typos in Config descriptions and entity labels
 
-## [0.2.0]
+`0.2.0`
 - Added `DamageToMaxHealthThreshold` to configuration (see Configuration section)
 - Added `Debuffs` to configuration (see Configuration section)
 - Code refactoring and some optimizations
 
-## [0.1.1]
+`0.1.1`
 - ReadMe update
 
-## [0.1.0]
+`0.1.0`
 - First Release
